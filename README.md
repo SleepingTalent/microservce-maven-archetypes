@@ -1,0 +1,1 @@
+# microservce-maven-archetypes
