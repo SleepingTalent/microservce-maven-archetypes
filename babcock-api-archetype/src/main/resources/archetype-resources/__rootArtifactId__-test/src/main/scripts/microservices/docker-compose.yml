@@ -1,0 +1,51 @@
+###############################################################
+### Default Configuration for development environment       ###
+### This file with be used on local dev and CI environments ###
+###############################################################
+version: '2'
+
+services:
+
+  test-db:
+      image: mysql
+      environment:
+        - MYSQL_ROOT_PASSWORD=root
+        - MYSQL_DATABASE=testdb
+        - MYSQL_USER=test
+        - MYSQL_PASSWORD=password
+      ports:
+        - "3306:3306"
+      expose:
+        - "3306"
+  #jdbc:mysql://localhost:3306/testdb
+
+  test-smtp-server:
+        image: mailhog/mailhog
+        ports:
+          - "1025:1025"
+          - "8025:8025"
+        expose:
+          - "1025"
+          - "8025"
+  #http://localhost:8025
+
+  ${rootArtifactId}:
+      image: sleepingtalent/${rootArtifactId}:snapshot
+      environment:
+      - SERVER_PORT=2224
+      - SPRING_PROFILES_ACTIVE=test
+      ports:
+      - "2222:2222"
+      depends_on:
+      - test-db
+      command: ["dockerize", "-wait", "http://config-api:1111/config-api/${rootArtifactId}/test" , "-wait", "tcp://test-db:3306", "-wait", "tcp://rabbitmq:5672", "-timeout", "380s", "--", "/bin/sh", "-c", "java -jar app.jar --server.port=2222 --spring.profiles.active=test --spring.cloud.config.uri=http://config-api:1111/config-api/"]
+      volumes:
+       - /home/developer/docker-logs/:/app/log
+      expose:
+       - "2222"
+  #http://localhost:2222/user-service/info
+
+networks:
+  default:
+    external:
+      name: infrastructure_microservices

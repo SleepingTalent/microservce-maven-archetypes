@@ -1,0 +1,59 @@
+def pomLocation = "${rootArtifactId}-parent"
+def targetLocation = "${rootArtifactId}-parent/${rootArtifactId}/target"
+def testTargetLocation = "${rootArtifactId}-parent/${rootArtifactId}-test/target"
+def branchName = env.BRANCH_NAME
+
+node {
+    echo "branch: "+branchName
+
+    stage('Checkout') {
+        checkout scm
+    }
+
+    if(branchName == 'master') {
+        stage('Build and Release') {
+
+            def pom = readMavenPom file: pomLocation + '/pom.xml'
+            def version = pom.version
+            def releaseVersion = version.minus("-SNAPSHOT")
+
+            try {
+                sh "mvn -B -V -U -e -f " + pomLocation + "/pom.xml release:clean release:prepare -Pdocker-publish,run-clean-env-build  -Ddocker.release.version=" + releaseVersion
+            } finally {
+                junit targetLocation + '/surefire-reports/*.xml,' + testTargetLocation + '/failsafe-reports/*.xml'
+
+                publishHTML(target: [
+                        allowMissing         : true,
+                        alwaysLinkToLastBuild: false,
+                        keepAll              : true,
+                        reportDir            : targetLocation + '/pit-reports',
+                        reportFiles          : 'index.html',
+                        reportName           : "${rootArtifactId} pit report"
+                ])
+            }
+        }
+
+        stage('Release to QA'){
+            sh "kubectl config use-context aws_QA"
+            sh "kubectl apply -f ${rootArtifactId}-parent/${rootArtifactId}/kubernetes/${rootArtifactId}-qa-deployment.yml --record"
+        }
+    } else {
+        stage('Build') {
+
+            try {
+                sh "mvn -B -V -U -e -f " + pomLocation + "/pom.xml clean install -Prun-clean-env-build"
+            } finally {
+                junit targetLocation + '/surefire-reports/*.xml,' + testTargetLocation + '/failsafe-reports/*.xml'
+
+                publishHTML(target: [
+                        allowMissing         : true,
+                        alwaysLinkToLastBuild: false,
+                        keepAll              : true,
+                        reportDir            : targetLocation + '/pit-reports',
+                        reportFiles          : 'index.html',
+                        reportName           : "${rootArtifactId} pit report"
+                ])
+            }
+        }
+    }
+}

@@ -1,0 +1,16 @@
+info:
+  app:
+    name: ${rootArtifactId}
+    description: ${rootArtifactId}
+    version: @project.version@
+
+server:
+  port: 2222
+  context-path: /${rootArtifactId}
+
+spring:
+  application:
+    name: ${rootArtifactId}
+
+logging:
+  config: classpath:logback-test.xml

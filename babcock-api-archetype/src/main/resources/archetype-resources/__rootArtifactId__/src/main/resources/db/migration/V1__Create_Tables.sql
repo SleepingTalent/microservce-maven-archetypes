@@ -1,0 +1,5 @@
+CREATE TABLE messages (
+    id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    message        VARCHAR(255) NOT NULL,
+    CONSTRAINT PERMISSIONS_NAME_UQ UNIQUE(message)
+);

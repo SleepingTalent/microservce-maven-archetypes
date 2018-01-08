@@ -1,0 +1,38 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+    name: ${rootArtifactId}
+spec:
+    replicas: 1
+    template:
+        metadata:
+            labels:
+              app: ${rootArtifactId}
+              tier: backend
+        spec:
+            containers:
+            - name: ${rootArtifactId}
+              image: sleepingtalent/${rootArtifactId}:@docker.release.version@
+              env:
+              - name: CONFIG_URL
+                value: http://config-api-gateway:1111/config-api/
+              ports:
+              - containerPort: 2222
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+    name: ${rootArtifactId}-gateway
+    labels:
+        app: ${rootArtifactId}
+        tier: backend
+spec:
+    type: LoadBalancer
+    ports:
+    - port: 2222
+    selector:
+        app: ${rootArtifactId}
+        tier: backend
+
+
